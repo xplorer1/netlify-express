@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken');
 const supersecret = config.secret;
 const storage = require('node-persist');
 const appstorage = require("../nodepersist");
-const middleware = require("../middleware");
+const middlewares = require("../middleware");
 
 if(!appstorage.get("blacklist")) {
     appstorage.set("blacklist", []);
@@ -19,18 +19,20 @@ apirouter.use(function(req, res, next) {
     next(); 
 });
 
-apirouter.post('/login', Login);
-apirouter.use("*", middleware);
-apirouter.get('/logout', Logout);
-apirouter.post('/createbucketlist', CreateBucketList);
-apirouter.get('/bucketlists', BucketLists);
-apirouter.get('/bucketlist/:id', List);
-apirouter.put('/bucketlist', UpdateBucketList);
-apirouter.delete('/bucketlist', DeleteBucketList);
+apirouter.post('/auth/login', Login);
+apirouter.get('/auth/logout', middlewares.checkToken, Logout);
+apirouter.post('/bucketlists', middlewares.checkToken, CreateBucketList);
+apirouter.get('/bucketlists', middlewares.checkToken, BucketLists);
+apirouter.get('/bucketlists/:id', middlewares.checkToken, List);
+apirouter.put('/bucketlists/:id', middlewares.checkToken, UpdateBucketList);
+apirouter.delete('/bucketlists/:id', middlewares.checkToken, DeleteBucketList);
+apirouter.use(function(req, res, next) {
+  return res.status(404).send({ message: ' Not found.' });
+});
 
 function Login(req, res) {
-	if(!req.body.email) return res.json({status: false, data: "email-required"});
-    if(!req.body.password) return res.json({status: false, data: "password-required"});
+	if(!req.body.email) return res.status(499).send({data: "email-required"});
+    if(!req.body.password) return res.status(499).send({data: "password-required"});
 
     User.findOne({email: req.body.email}, (err, user) => {
         if(err) return res.json({status: false, data: err.message});
@@ -129,9 +131,9 @@ function List(req, res) {
 }
 
 function UpdateBucketList(req, res) {
-    if(!req.body.id) return res.status(404).send({data: "id-required"});
+    if(!req.params.id) return res.status(404).send({data: "id-required"});
 
-    BucketList.updateOne({id: req.body.id}, {
+    BucketList.updateOne({id: req.params.id}, {
         $set: {
             id: req.body.id || list.id,
             name: req.body.name || list.name,
@@ -151,11 +153,10 @@ function UpdateBucketList(req, res) {
 }
 
 function DeleteBucketList(req, res) {
-    if(!req.body.id) return res.status(404).send({data: "id-required"});
+    if(!req.params.id) return res.status(404).send({data: "id-required"});
 
-    BucketList.deleteOne({id: req.body.id}, (err, idremoved) => {
+    BucketList.deleteOne({id: req.params.id}, (err, idremoved) => {
         if(err) console.log("err: ", err.message);
-        console.log("removed: ", idremoved);
 
         if(idremoved.deletedCount > 0) {
             return res.status(200).send({data: "deleted"});
@@ -167,7 +168,38 @@ function DeleteBucketList(req, res) {
 }
 
 function CreateNewBucketListItem(req, res) {
-    // body...
+    if(!req.body.name) return res.status(404).send({data: "bucketlist-name-required"});
+
+    User.findOne({email: req.verified.email}, (err, user) => {
+        if(err) console.log("err: ", err.message);
+
+        if(!user) return res.status(404).send({data: "user-notfound"});
+
+        if(user) {
+            BucketList.findOne({name: req.body.name}, (err, bucketlist) => {
+                if(err) console.log("err: ", err.message);
+
+                if(!bucketlist) {
+                    let list = new BucketList();
+
+                    list.name = req.body.name;
+                    list.created_by = user.email;
+                    list.id = config.generateCode();
+
+                    list.save((err, success) => {
+                        if(err) return res.status(500).send({data: "unable-save-bucket-list"});
+
+                        if(success) {
+                            return res.status(200).send({data: "Bucket-List-Created"});
+                        }
+                    })
+                }
+                else {
+                    return res.status(409).send({data: "bucket-list-exists"});
+                }
+            })
+        }
+    })
 }
 
 function BucketListItem(req, res) {
