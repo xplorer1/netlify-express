@@ -18,7 +18,7 @@ const middlewares = {
         let token = req.header("Authorization").replace("Bearer ", "");
         if(!token) return res.status(403).send({data: "token-required"});
 
-        if(SearchBlackList(token)) {
+        if(middlewares.SearchBlackList(token)) {
             return res.status(401).send({data: "token-invalid"});
         }
 

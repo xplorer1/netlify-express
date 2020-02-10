@@ -1,27 +1,44 @@
-let mongoose = require('mongoose');
-let Schema   = mongoose.Schema;
-let bcrypt = require('bcrypt-nodejs');
+const Sequelize = require("sequelize");
+const sequelize = new Sequelize("BucketList", "postgres", "delta2016", {
+    host: "localhost",
+    dialect: "postgres",
+    pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+    }
+})
 
-let UserSchema = new Schema({
-    'email' : {
-        type: String,
-        lowercase: true,
-        required: true,
-        validate: {
-            validator: function(v) {
-                return /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(v);
-            },
-            message: '{VALUE} is not a valid email!'
-        }
+const Model = Sequelize.Model;
+
+class User extends Model {};
+
+User.init({
+    email: {
+        type: Sequelize.STRING,
+        allowNull: false
     },
-    'name' : String,
-    'password' : String,
-    'role' : String,
-    'createdon' : { type: Date, default: new Date() }
-});
+    name: {
+        type: Sequelize.STRING,
+        allowNull: false
+    },
+    password: {
+        type: Sequelize.STRING,
+        allowNull: false
+    }
+},
+    {
+        sequelize: sequelize,
+        modelName: 'user'
+    })
+
+sequelize.sync();
+
+module.exports = User;
 
 // hash the password before the user is saved
-UserSchema.pre('save', function (next) {
+/*UserSchema.pre('save', function (next) {
     let user = this;
 
     // hash the password only if the password has been changed or user is new
@@ -35,10 +52,10 @@ UserSchema.pre('save', function (next) {
         user.password = hash;
         next();
     });
-});
+});*/
 
 // method to compare a given password with the database hash
-UserSchema.methods.comparePassword = function (password) {
+/*UserSchema.methods.comparePassword = function (password) {
     try{
         let user = this;
 
@@ -47,6 +64,4 @@ UserSchema.methods.comparePassword = function (password) {
         console.log("password compare exception:", e);
         return false;
     }
-};
-
-module.exports = mongoose.model('User', UserSchema);
+};*/
