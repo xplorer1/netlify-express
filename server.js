@@ -6,19 +6,6 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
-const { Client } = require('pg');
-const client = new Client(
-	{
-		user: 'postgres',
-	    host: 'localhost',
-	  	database: 'BucketList',
-	  	password: 'delta2016',
-	  	port: 5432,
-	}
-);
-
-client.connect();
-
 let mongoose = require('mongoose'); // for working w/ our database
 let config = require('./config');
 
@@ -48,6 +35,6 @@ app.use(function(req, res, next) {
     next();
 });
 
-app.use("/", api);
+app.use("/v1", api);
 
 app.listen(port, () => console.log(`Listening on port ${port}!`))

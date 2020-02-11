@@ -26,23 +26,23 @@ const middlewares = {
             jwt.verify(token, supersecret, function(err, verified) {
                 if (err) {
                     if (err.name == 'TokenExpiredError') {
-                        return res.status(403).send({ success: false, message: 'Token expired.' });
+                        return res.status(403).send({data: "token-expired"});
                     } else {
-                        return res.json({ success: false, message: 'Failed to authenticate token.' });
+                        return res.status(403).sed({data: "Failed-to-authenticate-token" });
                     }
                 } else {
-                    //delete decoded.iat;
-                    //delete decoded.exp;
                     let obj = {};
                     obj.token = token;
                     obj.email = verified.email;
+                    obj.id = verified.id;
+                    obj.name = verified.name;
                     req.verified = obj;
 
                     next();
                 }
             });
         } else {
-            return res.status(403).send({ success: false, message: 'No token provided.' });
+            return res.status(403).send({message: "token-required" });
         }
     }
 }

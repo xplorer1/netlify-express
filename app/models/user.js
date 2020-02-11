@@ -33,7 +33,7 @@ User.init({
         modelName: 'user'
     })
 
-sequelize.sync();
+//sequelize.sync();
 
 module.exports = User;
 

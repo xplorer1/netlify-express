@@ -23,61 +23,69 @@ apirouter.use(function(req, res, next) {
 apirouter.post('/auth/save', Save);
 apirouter.post('/auth/login', Login);
 apirouter.get('/auth/logout', middlewares.checkToken, Logout);
-apirouter.post('/bucketlists', middlewares.checkToken, CreateBucketList);
-apirouter.get('/bucketlists', middlewares.checkToken, BucketLists);
+apirouter.post('/bucketlists', middlewares.checkToken, CreateList);
+apirouter.get('/bucketlists', middlewares.checkToken, Lists);
 apirouter.get('/bucketlists/:id', middlewares.checkToken, List);
-apirouter.put('/bucketlists/:id', middlewares.checkToken, UpdateBucketList);
-apirouter.delete('/bucketlists/:id', middlewares.checkToken, DeleteBucketList);
-apirouter.post('/bucketlists/:id/items', middlewares.checkToken, CreateNewBucketListItem);
-apirouter.get('/bucketlists/:id/items', middlewares.checkToken, BucketListItems);
-apirouter.get('/bucketlists/:id/items/:item_id', middlewares.checkToken, BucketListItem);
-apirouter.use(function(req, res, next) {
-  return res.status(404).send({ message: ' Not found.' });
+apirouter.put('/bucketlists/:id', middlewares.checkToken, UpdateList);
+apirouter.delete('/bucketlists/:id', middlewares.checkToken, DeleteList);
+apirouter.post('/bucketlists/:id/items', middlewares.checkToken, CreateListItem);
+apirouter.get('/bucketlists/:id/items', middlewares.checkToken, ListItems);
+apirouter.get('/bucketlists/:id/items/:item_id', middlewares.checkToken, ListItem);
+apirouter.put('/bucketlists/:id/items/:item_id', middlewares.checkToken, UpdateListItem);
+apirouter.delete('/bucketlists/:id/items/:item_id', middlewares.checkToken, DeleteListItem);
+apirouter.use(function(req, res) {
+    return res.status(404).send({ message: 'The url you visited does not exist' });
 });
 
 function Save(req, res) {
-    User.create({ email: req.body.email, name: req.body.name, password: req.body.password })
-        .then((created) => {
-            console.log("")
-            if(created) return res.status(200).send({data: "created"});
-            else {return res.status(500).send({data: "not-created"})}
-        })
-        .catch((error) => {
-            console.log("error: ", error);
-            return res.status(500).send({data: "not-created"})
-        })
+    const text = 'INSERT INTO users(name, email, password) VALUES($1, $2, $3) RETURNING *';
+    const values = [req.body.name, req.body.email, req.body.password];
+
+    db.query(text, values, (err, user) => {
+        if (err) {
+            console.log("error: ", err);
+            return res.send(err)
+          //return next(err)
+        }
+
+        if(user.rowCount > 0) {
+            return res.status(200).send(user.rows[0]);
+        }
+    })
 }
 
 function Login(req, res) {
 	if(!req.body.email) return res.status(499).send({data: "email-required"});
     if(!req.body.password) return res.status(499).send({data: "password-required"});
 
-    User.findOne({ where: { email: req.body.email, password: req.body.password } })
-        .then((user) => {
-            if(!user) {
-                return res.status(404).send({data: "user-notfound"});
-            }
-            else {
-                let token = jwt.sign({
-                    email: req.body.email,
-                    name: user.name
-                }, supersecret, {
-                    expiresIn: "1h" // expires in 24 hours.
-                });
+    let text = 'SELECT * FROM users WHERE users.email = $1 AND users.password = $2';
+    let values = [req.body.email, req.body.password];
 
-                let owner = {};
+    db.query(text, values, (err, user) => {
+        if (err) {
+            console.log("error: ", err);
+            return res.send(err)
+        }
 
-                owner.username = user.username;
-                owner.token = token;
-                owner.role = "guest";
+        if(user.rowCount > 0) {
+            console.log("user: ", user.rows[0])
+            let token = jwt.sign({
+                email: req.body.email,
+                name: user.rows[0].name,
+                id: user.rows[0].id
+            }, supersecret, {
+                expiresIn: "1h" // expires in 24 hours.
+            });
 
-                return res.status(200).send({data: owner})
-            }
-            console.log("user: ", user);
-        })
-        .catch((error) => {
-            console.log("error: ", error);
-        })
+            let owner = {};
+            owner.token = token;
+
+            return res.status(200).send(owner);
+        }
+        else {
+            return res.status(404).send({data: "account-not-found"});
+        }
+    })
 }
 
 function Logout(req, res) {
@@ -89,120 +97,193 @@ function Logout(req, res) {
     return res.status(200).send({data: "logout-successful"});
 }
 
-function CreateBucketList(req, res) {
+function CreateList(req, res) {
     if(!req.body.name) return res.status(404).send({data: "bucketlist-name-required"});
 
-    User.findOne({email: req.verified.email}, (err, user) => {
-        if(err) console.log("err: ", err.message);
+    let date_created = new Date();
+    let date_modified = new Date();
 
-        if(!user) return res.status(404).send({data: "user-notfound"});
+    let text = 'INSERT INTO bucketlists(name, date_created, date_modified, created_by) VALUES($1, $2, $3, $4) RETURNING *';
+    let values = [req.body.name, date_created, date_modified, req.verified.id];
 
-        if(user) {
-            BucketList.findOne({name: req.body.name}, (err, bucketlist) => {
-                if(err) console.log("err: ", err.message);
+    db.query(text, values, (err, list) => {
+        if (err) {
+            console.log("error: ", err);
+            return res.send(err)
+        }
 
-                if(!bucketlist) {
-                    let list = new BucketList();
-
-                    list.name = req.body.name;
-                    list.created_by = user.email;
-                    list.id = config.generateCode();
-
-                    list.save((err, success) => {
-                        if(err) return res.status(500).send({data: "unable-save-bucket-list"});
-
-                        if(success) {
-                            return res.status(200).send({data: "Bucket-List-Created"});
-                        }
-                    })
-                }
-                else {
-                    return res.status(409).send({data: "bucket-list-exists"});
-                }
-            })
+        if(list.rowCount > 0) {
+            
+            return res.status(200).send(list.rows[0]);
+        }
+        else {
+            return res.status(404).send({data: "unable-to-create-bucket-list"});
         }
     })
 }
 
-function BucketLists(req, res) {
-    BucketList.find({}, {"name" : 1, "date_created" : 1, "created_by" : 1, "id" : 1, "items" : 1, "_id" : 0}, (err, lists) => {
-        if(err) console.log("err: ", err.message);
+function Lists(req, res) {
+    let text = 'SELECT * FROM bucketlists WHERE created_by = $1';
+    let value = [req.verified.id];
 
-        if(lists) return res.status(200).send({data: lists});
-    })
+    if(Object.entries(req.query).length === 0 && req.query.constructor === Object) { //good old fashion fetch all bucket lists if no request queries are supplied.
+        db.query(text, value, (err, lists) => {
+            if (err) {
+                console.log("error: ", err);
+                return res.send(err)
+            }
+
+            if(lists.rowCount > 0) {
+                return res.status(200).send(lists.rows);
+            }
+            else {
+                return res.status(404).send({data: "list-notfound"});
+            }
+        })
+    }
+    else if(req.query.limit) { //when it was a limit supplied.
+        if(req.query.limit >= 20 && req.query.limit <= 100) {
+            let text = 'SELECT * FROM bucketlists WHERE created_by = $1 ORDER BY bucketlists.id LIMIT $2';
+            let value = [req.verified.id, req.query.limit];
+
+            db.query(text, value, (err, lists) => {
+                if (err) {
+                    console.log("error: ", err);
+                    return res.send(err)
+                }
+
+                if(lists.rowCount > 0) {
+                    return res.status(200).send(lists.rows);
+                }
+                else {
+                    return res.status(404).send({data: "list-not-found"});
+                }
+            })
+        }
+        else {
+            return res.status(200).send({data: "limit-request-out-of-range"});
+        }
+    }
+    else if(req.query.q) {
+        let text = 'SELECT * FROM bucketlists WHERE created_by = $1 AND name = $2';
+        let value = [req.verified.id, req.query.q];
+
+        db.query(text, value, (err, lists) => {
+            if (err) {
+                console.log("error: ", err);
+                return res.send(err)
+            }
+
+            if(lists.rowCount > 0) {
+                return res.status(200).send(lists.rows);
+            }
+            else {
+                return res.status(404).send({data: "list-not-found"});
+            }
+        })
+    }
+    
 }
 
 function List(req, res) {
     if(!req.params.id) return res.status(404).send({data: "id-required"});
 
-    BucketList.findOne({id: req.params.id}, {"name" : 1, "date_created" : 1, "created_by" : 1, "id" : 1}, (err, list) => {
-        if(err) console.log("err: ", err.message);
+    let text = 'SELECT * FROM bucketlists WHERE created_by = $1 AND id = $2';
+    let value = [req.verified.id, req.params.id];
 
-        if(list) return res.status(200).send({data: list});
+    db.query(text, value, (err, list) => {
+        if (err) {
+            console.log("error: ", err);
+            return res.send(err)
+        }
 
+        if(list.rowCount > 0) {
+            return res.status(200).send(list.rows);
+        }
         else {
             return res.status(404).send({data: "list-notfound"});
-        }
-    })
-}
-
-function UpdateBucketList(req, res) {
-    if(!req.params.id) return res.status(404).send({data: "id-required"});
-
-    BucketList.updateOne({id: req.params.id}, {
-        $set: {
-            id: req.body.id || list.id,
-            name: req.body.name || list.name,
-            date_modified: new Date()
-        }
-    }, (err, listupdated) => {
-        console.log("listupdated: ", listupdated)
-        if(err) return res.json({status: false, data: err});
-
-        if(listupdated.nModified > 0) {
-            return res.status(200).send({data: "updated"});
-        }
-        else {
-            return res.status(499).send({data: "unable-to-update. Id not found."});
-        }
-    })
-}
-
-function DeleteBucketList(req, res) {
-    if(!req.params.id) return res.status(404).send({data: "id-required"});
-
-    BucketList.deleteOne({id: req.params.id}, (err, idremoved) => {
-        if(err) console.log("err: ", err.message);
-
-        if(idremoved.deletedCount > 0) {
-            return res.status(200).send({data: "deleted"});
-        }
-        else {
-            return res.status(499).send({data: "unable-to-update. Id not found."});
         }
     });
 }
 
-function CreateNewBucketListItem(req, res) {
-    let item = {};
-    item["id"] = config.generateCode();
-    item["name"] = req.body.name;
-
+function UpdateList(req, res) {
     if(!req.params.id) return res.status(404).send({data: "id-required"});
+
+    let date_modified = new Date();
+
+    if(req.body.name){
+        let text = 'UPDATE bucketlists SET name = $1, date_modified = $2 WHERE id = $3 RETURNING *';
+        let values = [req.body.name, date_modified, req.params.id];
+
+        db.query(text, values, (err, updated) => {
+            if (err) {
+                console.log("error: ", err);
+                return res.send(err)
+            }
+
+            if(updated.rowCount > 0) {
+                return res.status(200).send(updated.rows);
+            }
+            else {
+                return res.status(404).send({data: "id-notfound"});
+            }
+        })
+    }
+    else {
+        return res.status(200).send({data: "nothing-to-update"});
+    }
+}
+
+function DeleteList(req, res) {
+    if(!req.params.id) return res.status(404).send({data: "id-required"});
+
+    let text = 'DELETE FROM bucketlists WHERE id = $1 RETURNING *';
+    let values = [req.params.id];
+
+    db.query(text, values, (err, deleted) => {
+        if (err) {
+            console.log("error: ", err);
+            return res.send(err)
+        }
+
+        if(deleted.rowCount > 0) {
+            return res.status(200).send({data: "deleted"});
+        }
+        else {
+            return res.status(404).send({data: "id-notfound"});
+        }
+    })
+}
+
+function CreateListItem(req, res) {
     if(!req.body.name) return res.status(404).send({data: "item-name-required"});
+    if(!req.params.id) return res.status(404).send({data: "id-required"});
 
-    BucketList.findOne({id: req.params.id}, (err, list) => {
-        if(err) console.log("er: ", err.message);
+    let date_created = new Date();
+    let date_modified = new Date();
 
-        if(list) {
-            BucketList.updateOne({id: req.params.id}, {$push: {"items": item}}, (err, listupdated) => {
-                if(err) return res.json({status: false, data: err});
+    let text = 'INSERT INTO items(name, date_created, date_modified, id) VALUES($1, $2, $3, $4) RETURNING *';
+    let values = [req.body.name, date_created, date_modified, req.params.id];
 
-                if(listupdated.nModified > 0) {
-                    return res.status(200).send({data: "item-created"});
+    db.query('SELECT * FROM bucketlists WHERE bucketlists.id = $1', [req.params.id], (err, blist) => {
+        if (err) {
+            console.log("error: ", err);
+            return res.send(err)
+        }
+
+        if(blist.rowCount > 0) {
+            db.query(text, values, (err, list) => {
+                if (err) {
+                    console.log("error: ", err);
+                    return res.send(err)
+                }
+
+                if(list.rowCount > 0) {
+                    
+                    return res.status(200).send(list.rows[0]);
                 }
                 else {
-                    return res.status(499).send({data: "unable-to-update. Id not found."});
+                    return res.status(404).send({data: "id-not-found"});
                 }
             })
         }
@@ -212,56 +293,100 @@ function CreateNewBucketListItem(req, res) {
     })
 }
 
-function BucketListItems(req, res) {
+function ListItems(req, res) {
     if(!req.params.id) return res.status(404).send({data: "id-required"});
 
-    BucketList.findOne({id: req.params.id}, {"items" : 1}, (err, items) => {
-        if(err) console.log("err: ", err.message);
+    let text = 'SELECT * FROM items WHERE items.id = $1';
+    let value = [req.params.id];
 
-        if(items) return res.status(200).send({data: items});
+    db.query(text, value, (err, items) => {
+        if (err) {
+            console.log("error: ", err);
+            return res.send(err)
+        }
 
+        if(items.rowCount > 0) {
+            return res.status(200).send(items.rows);
+        }
         else {
             return res.status(404).send({data: "items-not-found"});
         }
-    })
+    });
 }
 
-function BucketListItem(req, res) {
+function ListItem(req, res) {
     if(!req.params.id) return res.status(404).send({data: "bucket-list-id-required"});
     if(!req.params.item_id) return res.status(404).send({data: "item-id-required"});
 
-    BucketList.findOne({id: req.params.id}, {"items" : 1}, (err, list) => {
-        if(err) console.log("err: ", err.message);
+    if(!req.params.id) return res.status(404).send({data: "id-required"});
 
-        console.log("list: ", list.items);
+    let text = 'SELECT * FROM items WHERE id = $1 AND item_id = $2';
+    let value = [req.params.id, req.params.item_id];
 
-        if(list) {            
-            BucketList.findOne({"list.items": {id: req.params.item_id}}, (err, item) => {
-                if(err) console.log("err: ", err.message);
-
-                console.log("item: ", item);
-
-                if(item) return res.status(200).send({data: item});
-
-                else {
-                    return res.status(500).send({data: "item-not-found"});
-                }
-            })
+    db.query(text, value, (err, item) => {
+        if (err) {
+            console.log("error: ", err);
+            return res.send(err)
         }
 
+        if(item.rowCount > 0) {
+            return res.status(200).send(item.rows);
+        }
         else {
-            return res.status(404).send({data: "bucket-list-id-not-found"});
+            return res.status(404).send({data: "item-notfound"});
+        }
+    });
+}
+
+function UpdateListItem(req, res) {
+    if(!req.params.id) return res.status(404).send({data: "id-required"});
+    if(!req.params.item_id) return res.status(404).send({data: "id-required"});
+
+    let date_modified = new Date();
+
+    if(req.body.name) {
+        let text = 'UPDATE items SET name = $1, date_modified = $2, done = $3 WHERE id = $4 AND item_id = $5 RETURNING *';
+        let values = [req.body.name, date_modified, req.body.done, req.params.id, req.params.item_id];
+
+        db.query(text, values, (err, updated) => {
+            if (err) {
+                console.log("error: ", err);
+                return res.send(err)
+            }
+
+            if(updated.rowCount > 0) {
+                return res.status(200).send(updated.rows);
+            }
+            else {
+                return res.status(404).send({data: "id-notfound"});
+            }
+        })
+    }
+    else {
+        return res.status(200).send({data: "nothing-to-update"});
+    }
+}
+
+function DeleteListItem(req, res) {
+    if(!req.params.id) return res.status(404).send({data: "id-required"});
+    if(!req.params.item_id) return res.status(404).send({data: "item_id-required"});
+
+    let text = 'DELETE FROM items WHERE id = $1 AND item_id = $2 RETURNING *';
+    let values = [req.params.id, req.params.item_id];
+
+    db.query(text, values, (err, deleted) => {
+        if (err) {
+            console.log("error: ", err);
+            return res.send(err)
+        }
+
+        if(deleted.rowCount > 0) {
+            return res.status(200).send({data: "deleted"});
+        }
+        else {
+            return res.status(404).send({data: "id-notfound"});
         }
     })
-    // body...
-}
-
-function UpdateBucketListItem(req, res) {
-    // body...
-}
-
-function DeleteBucketListItem(req, res) {
-    // body...
 }
 
 module.exports = apirouter;

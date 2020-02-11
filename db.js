@@ -1,23 +1,22 @@
 const { Pool } = require('pg');
-const pool = new Pool();
 
-const Sequelize = require("sequelize");
-const sequelize = new Sequelize("BucketList", "postgres", "delta2016", {
-	host: "localhost",
-	dialect: "postgres",
-	pool: {
-		max: 5,
-		min: 0,
-		acquire: 30000,
-		idle: 10000
+const connectionString = 'postgresql://postgres:delta2016@localhost:5432/BucketList';
+
+const pool = new Pool(
+	{
+		connectionString: connectionString
 	}
-});
+);
 
-sequelize
-	.authenticate()
-	.then(() => {
-		console.log("connection established.");
-	})
-	.catch((error) => {
-		console.log("unable to connect: ", error)
-	})
+pool.connect();
+
+module.exports = {
+   	query: (text, values, callback) => {
+	    const start = Date.now()
+	    return pool.query(text, values, (err, res) => {
+	      	const duration = Date.now() - start
+	      	console.log('executed query', { text, duration, rows: res })
+	      	callback(err, res)
+	    })
+  	},
+}
