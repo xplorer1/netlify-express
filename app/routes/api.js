@@ -11,6 +11,9 @@ const storage = require('node-persist');
 const appstorage = require("../nodepersist");
 const middlewares = require("../middleware");
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('../../swagger.json');
+
 if(!appstorage.get("blacklist")) {
     appstorage.set("blacklist", []);
 }
@@ -19,6 +22,9 @@ apirouter.use(function(req, res, next) {
     console.log(req.method, req.url);
     next(); 
 });
+
+apirouter.use('/api-docs', swaggerUi.serve);
+apirouter.get('/api-docs', swaggerUi.setup(swaggerDocument));
 
 apirouter.post('/auth/save', Save);
 apirouter.post('/auth/login', Login);
@@ -68,7 +74,6 @@ function Login(req, res) {
         }
 
         if(user.rowCount > 0) {
-            console.log("user: ", user.rows[0])
             let token = jwt.sign({
                 email: req.body.email,
                 name: user.rows[0].name,
@@ -117,7 +122,7 @@ function CreateList(req, res) {
             return res.status(200).send(list.rows[0]);
         }
         else {
-            return res.status(404).send({data: "unable-to-create-bucket-list"});
+            return res.status(499).send({data: "unable-to-create-bucket-list"});
         }
     })
 }
@@ -182,7 +187,6 @@ function Lists(req, res) {
             }
         })
     }
-    
 }
 
 function List(req, res) {
