@@ -44,6 +44,10 @@ apirouter.use(function(req, res) {
 });
 
 function Save(req, res) {
+    if(!req.body.name) return res.status(403).send({data: "name-reqired"});
+    if(!req.body.email) return res.status(403).send({data: "email-required"});
+    if(!req.body.password) return res.status(403).send({data: "password-required"});
+    
     const text = 'INSERT INTO users(name, email, password) VALUES($1, $2, $3) RETURNING *';
     const values = [req.body.name, req.body.email, req.body.password];
 
@@ -119,7 +123,7 @@ function CreateList(req, res) {
 
         if(list.rowCount > 0) {
             
-            return res.status(200).send(list.rows[0]);
+            return res.status(200).send({data: "created"});
         }
         else {
             return res.status(499).send({data: "unable-to-create-bucket-list"});
@@ -212,6 +216,7 @@ function List(req, res) {
 
 function UpdateList(req, res) {
     if(!req.params.id) return res.status(404).send({data: "id-required"});
+    if(!req.body.name) return res.status(404).send({data: "name-reqired"});
 
     let date_modified = new Date();
 

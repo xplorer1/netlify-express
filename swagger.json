@@ -13,10 +13,51 @@
     "http"
   ],
   "paths": {
+    "/auth/save": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "saves a user",
+        "description": "",
+        "operationId": "save",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Body (Name, Email and Password)",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          },
+          "404": {
+            "description": "account-not-found"
+          },
+          "499": {
+            "description": "Email, name or password required."
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "tags": [
-          "login"
+          "auth"
         ],
         "summary": "logins in existing user",
         "description": "",
@@ -42,7 +83,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/User"
+              "$ref": "#/definitions/Login"
             }
           },
           "404": {
@@ -57,7 +98,7 @@
     "/auth/logout": {
       "get": {
         "tags": [
-          "logout"
+          "auth"
         ],
         "summary": "logs out existing user",
         "description": "",
@@ -87,7 +128,7 @@
           "bucketlists"
         ],
         "summary": "saves a bucketlist",
-        "description": "",
+        "description": "saves a buckets list",
         "operationId": "savebucketlist",
         "consumes": [
           "application/json"
@@ -108,7 +149,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "created"
           },
           "401": {
             "description": "token-invalid"
@@ -121,6 +162,387 @@
           },
           "499": {
             "description": "unable-to-create-bucketlist"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "bucketlists"
+        ],
+        "summary": "fetches all existing bucket lists",
+        "description": "fetches all existing bucket list",
+        "operationId": "fetchBucketLists",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/BucketLists"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "403": {
+            "description": "token-required"
+          },
+          "404": {
+            "description": "not-found"
+          }
+        }
+      }
+    },
+    "/bucketlists/{id}": {
+      "get": {
+        "tags": [
+          "bucketlists"
+        ],
+        "summary": "fetches specific bucket list",
+        "description": "",
+        "operationId": "fetchucketList",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Id of bucket"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/BucketLists"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "403": {
+            "description": "token-required"
+          },
+          "404": {
+            "description": "not-found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "bucketlists"
+        ],
+        "summary": "Update an existing bucket list",
+        "description": "update existig bucket list",
+        "operationId": "updateBucketList",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "name",
+            "description": "name of bucket",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BucketLists"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "description": "id of bucket"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/BucketLists"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "403": {
+            "description": "token-required"
+          },
+          "404": {
+            "description": "not-found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "bucketlists"
+        ],
+        "summary": "Deletes an existing bucket list",
+        "description": "deletes existig bucket list",
+        "operationId": "deletesBucketList",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Id of bucket"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "deleted"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "403": {
+            "description": "token-required"
+          },
+          "404": {
+            "description": "id-not-found"
+          }
+        }
+      }
+    },
+    "/bucketlists/{id}/items": {
+      "post": {
+        "tags": [
+          "items"
+        ],
+        "summary": "creates a bucket list item",
+        "description": "creates a buckets list item",
+        "operationId": "savebucketlistitem",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "body",
+            "description": "Name of item",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Items"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Id of bucket"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "created"
+          },
+          "401": {
+            "description": "token-invalid"
+          },
+          "403": {
+            "description": "token-required"
+          },
+          "404": {
+            "description": "id-not-found"
+          },
+          "499": {
+            "description": "unable-to-create-item"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "items"
+        ],
+        "summary": "fetches all existing items in the bucketlist",
+        "description": "fetches all existing items in the bucketlist",
+        "operationId": "fetchBucketListItems",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Id of bucket"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Items"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "403": {
+            "description": "token-required"
+          },
+          "404": {
+            "description": "not-found"
+          }
+        }
+      }
+    },
+    "/bucketlists/{id}/items/{item_id}": {
+      "get": {
+        "tags": [
+          "items"
+        ],
+        "summary": "fetches specific existing item in the given bucketlist",
+        "description": "fetches specific existing item in the given bucketlist",
+        "operationId": "fetchBucketListItem",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Id of bucket"
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Id of item"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Items"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "403": {
+            "description": "token-required"
+          },
+          "404": {
+            "description": "id-or-item_id-not-found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Update an existing bucket list item",
+        "description": "update existig bucket listitem",
+        "operationId": "updateBucketListitem",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Items"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Id of bucket"
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Id of item"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Items"
+            }
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "403": {
+            "description": "token-required"
+          },
+          "404": {
+            "description": "id-or-item_id-not-found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Deletes an existing bucket list item",
+        "description": "deletes existig bucket list item",
+        "operationId": "deletesBucketListitem",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Id of bucket"
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "Id of item"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "deleted"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "403": {
+            "description": "token-required"
+          },
+          "404": {
+            "description": "id-or-item_id-not-found"
           }
         }
       }
@@ -169,6 +591,10 @@
           "type": "integer",
           "format": "int64"
         },
+        "item_id": {
+          "type": "integer",
+          "format": "int64"
+        },
         "name": {
           "type": "string"
         },
@@ -209,6 +635,20 @@
         "name": "User"
       }
     },
+    "Login": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "xml": {
+        "name": "Login"
+      }
+    },
     "ApiResponse": {
       "type": "object",
       "properties": {
@@ -224,9 +664,5 @@
         }
       }
     }
-  },
-  "externalDocs": {
-    "description": "Find out more about Swagger",
-    "url": "http://swagger.io"
   }
 }
