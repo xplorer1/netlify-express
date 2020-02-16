@@ -1,4 +1,4 @@
-let baseurl = "http://localhost:8050/v1/";
+let baseurl = "http://localhost:8050/api/v1/";
 const HttpService = {
     NoTokenServicePost: (payload, url) => {
         return fetch(baseurl + url, {
