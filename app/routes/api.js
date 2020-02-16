@@ -11,8 +11,8 @@ const storage = require('node-persist');
 const appstorage = require("../nodepersist");
 const middlewares = require("../middleware");
 
-const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('../../swagger.json');
+/*const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('../../swagger.json');*/
 
 if(!appstorage.get("blacklist")) {
     appstorage.set("blacklist", []);
@@ -23,8 +23,8 @@ apirouter.use(function(req, res, next) {
     next(); 
 });
 
-apirouter.use('/api-docs', swaggerUi.serve);
-apirouter.get('/api-docs', swaggerUi.setup(swaggerDocument));
+/*apirouter.use('/api-docs', swaggerUi.serve);
+apirouter.get('/api-docs', swaggerUi.setup(swaggerDocument));*/
 
 apirouter.post('/auth/save', Save);
 apirouter.post('/auth/login', Login);
