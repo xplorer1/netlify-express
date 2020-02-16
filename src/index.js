@@ -6,6 +6,7 @@ import SignUp from "./components/signup";
 import NotFound from "./components/notfound";
 import BucketList from "./components/bucketlist";
 import Item from "./components/item";
+import Swagger from "./components/swagger";
 
 function App() {
     return (
@@ -15,6 +16,7 @@ function App() {
 	    		<Route exact path='/signup' component={SignUp} />
 	    		<Route exact path='/bucketlist' component={BucketList} />
 	    		<Route exact path='/item' component={Item} />
+	    		<Route exact path='/api/vi/api-docs' component={Swagger} />
 	    		<Route path='' component={NotFound} />
 			</Switch>
         </Router>
