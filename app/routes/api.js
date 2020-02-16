@@ -117,7 +117,7 @@ function CreateList(req, res) {
     db.query(text, values, (err, list) => {
         if (err) {
             console.log("error: ", err);
-            return res.send{(status: 500, data: err})
+            return res.send({status: 500, data: err})
         }
 
         if(list.rowCount > 0) {

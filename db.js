@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
 
-const connectionString = 'postgresql://postgres:delta2016@localhost:5432/BucketList';
+//const connectionString = 'postgresql://postgres:delta2016@localhost:5432/BucketList';
+const connectionString = 'postgres://qnbpnbsg:PY7GSv2dgbahfGZy62Ra9wNfuXhQe_f2@rajje.db.elephantsql.com:5432/qnbpnbsg';
 
 const pool = new Pool(
 	{
