@@ -14,8 +14,9 @@ module.exports = {
    	query: (text, values, callback) => {
 	    const start = Date.now()
 	    return pool.query(text, values, (err, res) => {
+	    	console.log("res: ", res);
 	      	const duration = Date.now() - start
-	      	console.log('executed query', { text, duration, rows: res })
+	      	//console.log('executed query', { text, duration, rows: res })
 	      	callback(err, res)
 	    })
   	},

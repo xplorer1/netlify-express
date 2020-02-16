@@ -44,9 +44,9 @@ apirouter.use(function(req, res) {
 });
 
 function Save(req, res) {
-    if(!req.body.name) return res.status(403).send({data: "name-reqired"});
-    if(!req.body.email) return res.status(403).send({data: "email-required"});
-    if(!req.body.password) return res.status(403).send({data: "password-required"});
+    if(!req.body.name) return res.send({status: 404, data: "name-reqired"});
+    if(!req.body.email) return res.send({status: 404, data: "email-required"});
+    if(!req.body.password) return res.send({status: 404, data: "password-required"});
     
     const text = 'INSERT INTO users(name, email, password) VALUES($1, $2, $3) RETURNING *';
     const values = [req.body.name, req.body.email, req.body.password];
@@ -54,19 +54,18 @@ function Save(req, res) {
     db.query(text, values, (err, user) => {
         if (err) {
             console.log("error: ", err);
-            return res.send(err)
-          //return next(err)
+            return res.send({status: 500, data: err});
         }
 
         if(user.rowCount > 0) {
-            return res.status(200).send(user.rows[0]);
+            return res.send({status: 200, data: user.rows[0]});
         }
     })
 }
 
 function Login(req, res) {
-	if(!req.body.email) return res.status(499).send({data: "email-required"});
-    if(!req.body.password) return res.status(499).send({data: "password-required"});
+	if(!req.body.email) return res.send({status: 404, data: "email-required"});
+    if(!req.body.password) return res.send({status: 404, data: "password-required"});
 
     let text = 'SELECT * FROM users WHERE users.email = $1 AND users.password = $2';
     let values = [req.body.email, req.body.password];
@@ -74,7 +73,7 @@ function Login(req, res) {
     db.query(text, values, (err, user) => {
         if (err) {
             console.log("error: ", err);
-            return res.send(err)
+            return res.send({status: 500, data: err});
         }
 
         if(user.rowCount > 0) {
@@ -89,10 +88,10 @@ function Login(req, res) {
             let owner = {};
             owner.token = token;
 
-            return res.status(200).send(owner);
+            return res.send({status: 200, data: owner});
         }
         else {
-            return res.status(404).send({data: "account-not-found"});
+            return res.send({status: 404, data: "not-found"});
         }
     })
 }
@@ -103,11 +102,11 @@ function Logout(req, res) {
     blacklistarray.push(req.verified.token);
     appstorage.set("blacklist", blacklistarray);
 
-    return res.status(200).send({data: "logout-successful"});
+    return res.send({status: 200});
 }
 
 function CreateList(req, res) {
-    if(!req.body.name) return res.status(404).send({data: "bucketlist-name-required"});
+    if(!req.body.name) return res.send({status: 404, data: "bucketlist-name-required"});
 
     let date_created = new Date();
     let date_modified = new Date();
@@ -118,35 +117,34 @@ function CreateList(req, res) {
     db.query(text, values, (err, list) => {
         if (err) {
             console.log("error: ", err);
-            return res.send(err)
+            return res.send{(status: 500, data: err})
         }
 
         if(list.rowCount > 0) {
             
-            return res.status(200).send({data: "created"});
+            return res.send({status: 200, data: list.rows});
         }
         else {
-            return res.status(499).send({data: "unable-to-create-bucket-list"});
+            return res.send({status: 499, data: "unable-to-create-bucket-list"});
         }
     })
 }
 
 function Lists(req, res) {
-    let text = 'SELECT * FROM bucketlists WHERE created_by = $1';
+    //bck.id, bck.name, bck.date_created, bck.created_by, itm.name, itm.bucket_id, itm.id, itm.date_created, itm.date_modified, itm.done
+    //LEFT OUTER JOIN items itm ON bck.id = itm.bucket_id
+    let text = 'SELECT bck.* FROM bucketlists bck WHERE created_by = $1';
     let value = [req.verified.id];
 
     if(Object.entries(req.query).length === 0 && req.query.constructor === Object) { //good old fashion fetch all bucket lists if no request queries are supplied.
         db.query(text, value, (err, lists) => {
             if (err) {
                 console.log("error: ", err);
-                return res.send(err)
+                return res.send({status: 500, data: err})
             }
 
-            if(lists.rowCount > 0) {
-                return res.status(200).send(lists.rows);
-            }
-            else {
-                return res.status(404).send({data: "list-notfound"});
+            if(lists) {
+                return res.send({status: 200, data: lists.rows});
             }
         })
     }
@@ -158,19 +156,16 @@ function Lists(req, res) {
             db.query(text, value, (err, lists) => {
                 if (err) {
                     console.log("error: ", err);
-                    return res.send(err)
+                    return res.send({status: 500, data: err});
                 }
 
-                if(lists.rowCount > 0) {
-                    return res.status(200).send(lists.rows);
-                }
-                else {
-                    return res.status(404).send({data: "list-not-found"});
+                if(lists) {
+                    return res.send({status: 200, data: lists.rows});
                 }
             })
         }
         else {
-            return res.status(200).send({data: "limit-request-out-of-range"});
+            return res.send({status: 500, data: "limit-request-out-of-range"});
         }
     }
     else if(req.query.q) {
@@ -183,11 +178,8 @@ function Lists(req, res) {
                 return res.send(err)
             }
 
-            if(lists.rowCount > 0) {
-                return res.status(200).send(lists.rows);
-            }
-            else {
-                return res.status(404).send({data: "list-not-found"});
+            if(lists) {
+                return res.send({status: 200, data: lists.rows});
             }
         })
     }
@@ -205,18 +197,15 @@ function List(req, res) {
             return res.send(err)
         }
 
-        if(list.rowCount > 0) {
-            return res.status(200).send(list.rows);
-        }
-        else {
-            return res.status(404).send({data: "list-notfound"});
+        if(list) {
+            return res.send({status: 200, data: list.rows});
         }
     });
 }
 
 function UpdateList(req, res) {
-    if(!req.params.id) return res.status(404).send({data: "id-required"});
-    if(!req.body.name) return res.status(404).send({data: "name-reqired"});
+    if(!req.params.id) return res.send({status: 404, data: "id-required"});
+    if(!req.body.name) return res.send({status: 404, data: "name-reqired"});
 
     let date_modified = new Date();
 
@@ -227,57 +216,66 @@ function UpdateList(req, res) {
         db.query(text, values, (err, updated) => {
             if (err) {
                 console.log("error: ", err);
-                return res.send(err)
+                return res.send({status: 500, data: err});
             }
 
-            if(updated.rowCount > 0) {
-                return res.status(200).send(updated.rows);
+            if(updated) {
+                return res.send({status: 200, data: updated.rows});
             }
             else {
-                return res.status(404).send({data: "id-notfound"});
+                return res.send({status: 404, data: "id-notfound"});
             }
         })
     }
     else {
-        return res.status(200).send({data: "nothing-to-update"});
+        return res.send({status: 499, data: "nothing-to-update"});
     }
 }
 
 function DeleteList(req, res) {
-    if(!req.params.id) return res.status(404).send({data: "id-required"});
+    if(!req.params.id) return res.send({status: 404, data: "id-required"});
 
     let text = 'DELETE FROM bucketlists WHERE id = $1 RETURNING *';
     let values = [req.params.id];
 
-    db.query(text, values, (err, deleted) => {
+    db.query('DELETE FROM items WHERE bucket_id = $1', [req.params.id], (err, deleted) => {
         if (err) {
             console.log("error: ", err);
-            return res.send(err)
+            return res.send({status: 500, data: err});
         }
 
-        if(deleted.rowCount > 0) {
-            return res.status(200).send({data: "deleted"});
-        }
-        else {
-            return res.status(404).send({data: "id-notfound"});
+        if(deleted) {
+            db.query(text, values, (err, deleted) => {
+                if (err) {
+                    console.log("error: ", err);
+                    return res.send(err)
+                }
+
+                if(deleted.rowCount > 0) {
+                    return res.send({status: 200, data: "deleted"});
+                }
+                else {
+                    return res.send({status: 404, data: "id-notfound"});
+                }
+            })
         }
     })
 }
 
 function CreateListItem(req, res) {
-    if(!req.body.name) return res.status(404).send({data: "item-name-required"});
-    if(!req.params.id) return res.status(404).send({data: "id-required"});
+    if(!req.body.name) return res.send({status: 404, data: "item-name-required"});
+    if(!req.params.id) return res.send({status: 404, data: "id-required"});
 
     let date_created = new Date();
     let date_modified = new Date();
 
-    let text = 'INSERT INTO items(name, date_created, date_modified, id) VALUES($1, $2, $3, $4) RETURNING *';
-    let values = [req.body.name, date_created, date_modified, req.params.id];
+    let text = 'INSERT INTO items (name, done, date_created, date_modified, bucket_id) VALUES($1, $2, $3, $4, $5) RETURNING *';
+    let values = [req.body.name, req.body.done, date_created, date_modified, req.params.id];
 
     db.query('SELECT * FROM bucketlists WHERE bucketlists.id = $1', [req.params.id], (err, blist) => {
         if (err) {
             console.log("error: ", err);
-            return res.send(err)
+            return res.send({status: 500, data: err});
         }
 
         if(blist.rowCount > 0) {
@@ -288,16 +286,15 @@ function CreateListItem(req, res) {
                 }
 
                 if(list.rowCount > 0) {
-                    
-                    return res.status(200).send(list.rows[0]);
+                    return res.send({status: 200, data: list.rows[0]});
                 }
                 else {
-                    return res.status(404).send({data: "id-not-found"});
+                    return res.send({status: 200, data: list.rows[0]});
                 }
             })
         }
         else {
-            return res.status(404).send({data: "id-not-found"});
+            return res.send({status: 404, data: "id-not-found"});
         }
     })
 }
@@ -305,20 +302,20 @@ function CreateListItem(req, res) {
 function ListItems(req, res) {
     if(!req.params.id) return res.status(404).send({data: "id-required"});
 
-    let text = 'SELECT * FROM items WHERE items.id = $1';
+    let text = 'SELECT * FROM items WHERE items.bucket_id = $1';
     let value = [req.params.id];
 
     db.query(text, value, (err, items) => {
         if (err) {
             console.log("error: ", err);
-            return res.send(err)
+            return res.send({status: 500, data: err});
         }
 
-        if(items.rowCount > 0) {
-            return res.status(200).send(items.rows);
+        if(items) {
+            return res.send({status: 200, data: items.rows});
         }
         else {
-            return res.status(404).send({data: "items-not-found"});
+            return res.send({status: 200, data: "items-not-found"});
         }
     });
 }
@@ -329,20 +326,20 @@ function ListItem(req, res) {
 
     if(!req.params.id) return res.status(404).send({data: "id-required"});
 
-    let text = 'SELECT * FROM items WHERE id = $1 AND item_id = $2';
+    let text = 'SELECT * FROM items WHERE bucket_id = $1 AND id = $2';
     let value = [req.params.id, req.params.item_id];
 
     db.query(text, value, (err, item) => {
         if (err) {
             console.log("error: ", err);
-            return res.send(err)
+            return res.send({status: 500, data: err});
         }
 
         if(item.rowCount > 0) {
-            return res.status(200).send(item.rows);
+            return res.send({status: 200, data: item.rows});
         }
         else {
-            return res.status(404).send({data: "item-notfound"});
+            return res.send({status: 404, data: "item-notfound"});
         }
     });
 }
@@ -354,17 +351,17 @@ function UpdateListItem(req, res) {
     let date_modified = new Date();
 
     if(req.body.name) {
-        let text = 'UPDATE items SET name = $1, date_modified = $2, done = $3 WHERE id = $4 AND item_id = $5 RETURNING *';
+        let text = 'UPDATE items SET name = $1, date_modified = $2, done = $3 WHERE bucket_id = $4 AND id = $5 RETURNING *';
         let values = [req.body.name, date_modified, req.body.done, req.params.id, req.params.item_id];
 
         db.query(text, values, (err, updated) => {
             if (err) {
                 console.log("error: ", err);
-                return res.send(err)
+                return res.send({status: 500, data: err});
             }
 
-            if(updated.rowCount > 0) {
-                return res.status(200).send(updated.rows);
+            if(updated) {
+                return res.send({status: 200, data: updated.rows});
             }
             else {
                 return res.status(404).send({data: "id-notfound"});
@@ -372,7 +369,7 @@ function UpdateListItem(req, res) {
         })
     }
     else {
-        return res.status(200).send({data: "nothing-to-update"});
+        return res.send({status: 499, data: "nothing-to-update"});
     }
 }
 
@@ -380,20 +377,20 @@ function DeleteListItem(req, res) {
     if(!req.params.id) return res.status(404).send({data: "id-required"});
     if(!req.params.item_id) return res.status(404).send({data: "item_id-required"});
 
-    let text = 'DELETE FROM items WHERE id = $1 AND item_id = $2 RETURNING *';
+    let text = 'DELETE FROM items WHERE bucket_id = $1 AND id = $2 RETURNING *';
     let values = [req.params.id, req.params.item_id];
 
     db.query(text, values, (err, deleted) => {
         if (err) {
             console.log("error: ", err);
-            return res.send(err)
+            return res.send({status: 500, data: err});
         }
 
         if(deleted.rowCount > 0) {
-            return res.status(200).send({data: "deleted"});
+            return res.send({status: 200, data: "deleted"});
         }
         else {
-            return res.status(404).send({data: "id-notfound"});
+            return res.send({status: 404, data: "id-notfound"});
         }
     })
 }

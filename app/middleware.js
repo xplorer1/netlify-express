@@ -19,6 +19,7 @@ const middlewares = {
         if(!token) return res.status(403).send({data: "token-required"});
 
         if(middlewares.SearchBlackList(token)) {
+            console.log("check 1")
             return res.status(401).send({data: "token-invalid"});
         }
 
@@ -26,7 +27,8 @@ const middlewares = {
             jwt.verify(token, supersecret, function(err, verified) {
                 if (err) {
                     if (err.name == 'TokenExpiredError') {
-                        return res.status(403).send({data: "token-expired"});
+                        console.log("check 2")
+                        return res.status(401).send({data: "token-expired"});
                     } else {
                         return res.status(403).sed({data: "Failed-to-authenticate-token" });
                     }

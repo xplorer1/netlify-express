@@ -46,10 +46,10 @@
             }
           },
           "404": {
-            "description": "account-not-found"
+            "description": "Email, name or password required"
           },
-          "499": {
-            "description": "Email, name or password required."
+          "500": {
+            "description": "Server error."
           }
         }
       }
@@ -87,10 +87,10 @@
             }
           },
           "404": {
-            "description": "account-not-found"
+            "description": "account-not-found, Email or password required."
           },
-          "499": {
-            "description": "Email or password required."
+          "500": {
+            "description": "Server Error"
           }
         }
       }
@@ -162,6 +162,9 @@
           },
           "499": {
             "description": "unable-to-create-bucketlist"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       },
@@ -229,6 +232,9 @@
           },
           "404": {
             "description": "not-found"
+          },
+          "500": {
+            "description": "Limit out of range."
           }
         }
       },
@@ -363,6 +369,9 @@
           },
           "499": {
             "description": "unable-to-create-item"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       },
@@ -543,6 +552,9 @@
           },
           "404": {
             "description": "id-or-item_id-not-found"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
@@ -647,21 +659,6 @@
       },
       "xml": {
         "name": "Login"
-      }
-    },
-    "ApiResponse": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "type": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        }
       }
     }
   }
