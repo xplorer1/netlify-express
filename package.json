@@ -1,7 +1,6 @@
 {
   "name": "jokeportal",
   "version": "0.1.0",
-  "proxy": "http://localhost:8050/v1/",
   "private": true,
   "dependencies": {
     "@hapi/hapi": "^18.4.0",

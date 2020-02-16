@@ -1,6 +1,6 @@
 const express = require('express')
 const app = express();
-const port = 8050;
+//const port = 8050;
 const api = require("./app/routes/api");
 const apidoc = require("./app/routes/api-doc");
 const path = require('path');
@@ -51,5 +51,10 @@ app.get('*', function(req, res) {
 	//res.sendFile(path.join(__dirname, 'public', 'index.html'));
     res.sendFile(path.join(__dirname + '/build/index.html'));
 });
+
+let port = process.env.PORT;
+if (port == null || port == "") {
+	port = 8050;
+}
 
 app.listen(port, () => console.log(`Listening on port ${port}!`))
